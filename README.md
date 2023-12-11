@@ -5,6 +5,6 @@ TBD:
 |----------------------|---|---|
 | Bovey Luong          | 81338 ||
 | Alex Below           | 104751 || 
-| Pierre Dany Ridoré   |  105071 ||
+| Pierre Dany Ridoré   |  105071 | ridoreda1992@gmail.com|
 |   |   ||
 |  |  | |
