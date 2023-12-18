@@ -1,13 +1,31 @@
 import pandas as pd
 import json
 import os
+import logging
+from typing import List, Dict, Union
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class DataLoader:
-    def __init__(self, config_path):
-        with open(config_path, 'r') as config_file:
-            self.config = json.load(config_file)
+    """
+    DataLoader class to load and union datasets for different experiments.
+    """
 
-    def load_experiment_data(self, experiment_name):
+    def __init__(self, config_path: str):
+        """
+        Initialize the DataLoader with a configuration file.
+        :param config_path: Path to the JSON configuration file.
+        """
+        try:
+            with open(config_path, 'r') as config_file:
+                self.config = json.load(config_file)
+            logging.info("Configuration loaded successfully.")
+        except Exception as e:
+            logging.error(f"Error loading configuration: {e}")
+            raise
+
+    def load_experiment_data(self, experiment_name: str) -> pd.DataFrame:
         """
         Load and union all datasets for a given experiment.
         :param experiment_name: Name of the experiment.
@@ -17,13 +35,21 @@ class DataLoader:
         for file_info in self.config['experiments'][experiment_name]:
             file_path = file_info['path']
             file_type = file_info['type']
-            data = self.load_file(file_path, file_type)
-            data['experiment'] = os.path.basename(file_path).split('.')[0]
-            experiment_data.append(data)
+            try:
+                data = self.load_file(file_path, file_type)
+                data['experiment'] = os.path.basename(file_path).split('.')[0]
+                experiment_data.append(data)
+            except Exception as e:
+                logging.error(f"Error loading file {file_path}: {e}")
+                continue
+
+        if not experiment_data:
+            logging.warning(f"No data loaded for experiment {experiment_name}.")
+            return pd.DataFrame()
 
         return pd.concat(experiment_data, ignore_index=True)
 
-    def load_file(self, file_path, file_type):
+    def load_file(self, file_path: str, file_type: str) -> pd.DataFrame:
         """
         Load data from a file based on its type and rename the first column to 'data'.
         :param file_path: Path to the data file.
@@ -39,11 +65,13 @@ class DataLoader:
         else:
             raise ValueError(f"Unsupported file type: {file_type}")
 
-        # Rename the first column to 'data'
         data.columns = ['data'] + data.columns.tolist()[1:]
         return data
 
 # Example usage
-data_loader = DataLoader('../config.json')
-experiment_data = data_loader.load_experiment_data('experiment1')
-print(experiment_data.head())
+try:
+    data_loader = DataLoader('../config.json')
+    experiment_data = data_loader.load_experiment_data('experiment1')
+    print(experiment_data.head())
+except Exception as e:
+    logging.error(f"An error occurred: {e}")
