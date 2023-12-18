@@ -1,4 +1,11 @@
 {
-    "file_path": ""
+    "experiments": {
+      "experiment1": [
+        {"path": "..\\.data\\Experiment_1\\measurement_1.tsv", "type": "tsv"},
+        {"path": "..\\.data\\Experiment_1\\measurement_2.tsv", "type": "tsv"}
+      ],
+      "experiment2": [
+        {"path": "..\\.data\\Experiment_2\\measurement_1.csv", "type": "csv"}
+      ]
+    }
   }
-  
