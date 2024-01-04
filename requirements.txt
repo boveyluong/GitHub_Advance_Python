@@ -3,3 +3,5 @@ logging
 seaborn
 matplotlib
 pathlib
+scikit-learn
+statsmodels

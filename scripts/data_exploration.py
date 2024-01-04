@@ -57,6 +57,21 @@ def explore_experiment(experiment_name, data_loader):
     plt.savefig(os.path.join(plots_dir, f'{experiment_name}_distribution.png'))
     plt.close()
 
+
+    # Count rows per measurement
+    measurement_counts = experiment_data.groupby('measurement').count()
+
+    # Save the counts to a CSV file
+    measurement_counts.to_csv(os.path.join(stats_dir, f'{experiment_name}_measurement_counts.csv'))
+
+    print(f"Row counts for {experiment_name} measurements saved to '{experiment_name}_measurement_counts.csv'.")
+
+    # Count duplicates for each measurement
+    measurement_duplicates = experiment_data.groupby('measurement').apply(lambda x: x.duplicated().sum())
+    print(f"Duplicates per measurement in {experiment_name}:")
+    print(measurement_duplicates)
+
+
     # Boxplot
     plt.figure(figsize=(10, 5))
     sns.boxplot(x=experiment_data['data'])
@@ -73,6 +88,7 @@ def explore_experiment(experiment_name, data_loader):
         plt.title(f'Correlation Matrix - {experiment_name}')
         plt.savefig(os.path.join(plots_dir, f'{experiment_name}_correlation_matrix.png'))
         plt.close()
+
 
 def main():
     # Set plot style
