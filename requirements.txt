@@ -1,2 +1,5 @@
 pandas
 logging
+seaborn
+matplotlib
+pathlib
