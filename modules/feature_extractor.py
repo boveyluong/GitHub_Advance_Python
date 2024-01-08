@@ -2,84 +2,103 @@ import pandas as pd
 import numpy as np
 from scipy.fftpack import fft
 from scipy.signal import welch
+from statsmodels.tsa.stattools import adfuller
 
 class FeatureExtractor:
     """
-    Extracts features from a signal time series for machine learning.
+    Extract features from a univariate time series for binary outcome prediction.
     """
 
-    def __init__(self):
-        pass
-
-    def extract_basic_features(self, data: pd.Series) -> dict:
+    def extract_statistical_features(self, data: pd.Series) -> dict:
         """
-        Extract basic statistical features from the time series data.
+        Extract statistical features from the data.
         :param data: Pandas Series with signal data.
-        :return: Dictionary with basic features.
+        :return: Dictionary with statistical features.
         """
-        features = {
+        return {
             'mean': data.mean(),
             'std': data.std(),
             'max': data.max(),
             'min': data.min(),
-            'range': data.max() - data.min(),
-            'skewness': data.skew(),
-            'kurtosis': data.kurt()
+            'median': data.median(),
+            'skew': data.skew(),
+            'kurtosis': data.kurt(),
+            'quantile1': data.quantile(0.25),
+            'quantile3': data.quantile(0.75),
+            'iqr': data.quantile(0.75) - data.quantile(0.25),
         }
-        return features
 
     def extract_fft_features(self, data: pd.Series) -> dict:
         """
-        Extract Fast Fourier Transform features from the time series data.
+        Extract Fast Fourier Transform features from the data.
         :param data: Pandas Series with signal data.
         :return: Dictionary with FFT features.
         """
-        # Ensure data is in the correct format (NumPy array)
-        if isinstance(data, pd.Series):
-            data = data.values
+        # Convert the Pandas Series to a NumPy array
+        data_array = data.to_numpy()
 
-        # Compute FFT and frequencies
-        signal_fft = fft(data)
-        magnitude = np.abs(signal_fft)
-        angle = np.angle(signal_fft)
-
-        # Only use the first half of the FFT as it is symmetrical for real signals
-        half = len(data) // 2
-        features = {
-            'fft_magnitude_mean': np.mean(magnitude[:half]),
-            'fft_magnitude_std': np.std(magnitude[:half]),
-            'fft_angle_mean': np.mean(angle[:half]),
-            'fft_angle_std': np.std(angle[:half]),
+        # Compute the fast Fourier transform
+        fft_spectrum = fft(data_array)
+        fft_magnitude = np.abs(fft_spectrum)
+        
+        # Extract basic features from FFT coefficients
+        return {
+            'fft_mean': fft_magnitude.mean(),
+            'fft_std': fft_magnitude.std(),
         }
-        return features
+
 
     def extract_power_spectral_density_features(self, data: pd.Series) -> dict:
         """
-        Extract Power Spectral Density features from the time series data.
+        Extract Power Spectral Density features from the data.
         :param data: Pandas Series with signal data.
         :return: Dictionary with PSD features.
         """
         freqs, psd = welch(data)
-        features = {
-            'psd_mean': np.mean(psd),
-            'psd_std': np.std(psd),
-            'psd_max': np.max(psd),
-            'psd_min': np.min(psd),
+        return {
+            'psd_mean': psd.mean(),
+            'psd_std': psd.std(),
         }
-        return features
-    
+
+    def extract_time_features(self, data: pd.Series) -> dict:
+        """
+        Extract time-based features from the data.
+        :param data: Pandas Series with signal data.
+        :return: Dictionary with time-based features.
+        """
+        # Drop NaNs or replace them with a suitable value
+        cleaned_data = data.dropna()
+
+        # Check if the cleaned data is not empty
+        if cleaned_data.empty:
+            raise ValueError("Data contains only NaNs.")
+
+        # Replace any infinite values with NaN, then drop them
+        cleaned_data.replace([np.inf, -np.inf], np.nan, inplace=True)
+        cleaned_data.dropna(inplace=True)
+
+        # Check if the cleaned data is not empty again after dropping infinities
+        if cleaned_data.empty:
+            raise ValueError("Data contains only infinities or NaNs after cleaning.")
+
+        # Check for stationarity
+        adf_result = adfuller(cleaned_data)
+        return {
+            'adf_statistic': adf_result[0],
+            'adf_pvalue': adf_result[1],
+        }
+
     def extract_all_features(self, data: pd.Series) -> pd.DataFrame:
         """
         Extract all features and return as a DataFrame for machine learning.
         :param data: Pandas Series with signal data.
         :return: DataFrame with all features.
         """
-        basic_features = self.extract_basic_features(data)
-        fft_features = self.extract_fft_features(data)
-        psd_features = self.extract_power_spectral_density_features(data)
-
-        # Combine all features into a single dictionary
-        all_features = {**basic_features, **fft_features, **psd_features}
+        all_features = {}
+        all_features.update(self.extract_statistical_features(data))
+        all_features.update(self.extract_fft_features(data))
+        all_features.update(self.extract_power_spectral_density_features(data))
+        all_features.update(self.extract_time_features(data))
 
         # Convert to DataFrame
         features_df = pd.DataFrame([all_features])

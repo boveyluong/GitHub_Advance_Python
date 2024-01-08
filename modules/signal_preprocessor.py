@@ -1,57 +1,20 @@
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from statsmodels.tsa.seasonal import STL
 
 class SignalPreprocessor:
     """
     Preprocess signals for feature extraction and deep learning.
     """
-    
-    def __init__(self, window_size: int = 5):
+
+    def __init__(self, window_size: int = 5, window_size_points: int = 1000):
         """
         Initialize the preprocessor.
         :param window_size: The window size for the rolling average for noise reduction.
+        :param window_size_points: The number of data points in each window for segmentation.
         """
         self.window_size = window_size
+        self.window_size_points = window_size_points
         self.scaler = MinMaxScaler(feature_range=(0, 1))
-        
-    def reduce_noise(self, data: pd.Series) -> pd.Series:
-        """
-        Apply a rolling average to reduce noise in the signal.
-        :param data: Pandas Series with signal data.
-        :return: Pandas Series with reduced noise.
-        """
-        return data.rolling(window=self.window_size, center=True).mean()
-    
-    def normalize_signal(self, data: pd.Series) -> pd.Series:
-        """
-        Normalize the signal data to a range between 0 and 1.
-        :param data: Pandas Series with signal data.
-        :return: Pandas Series with normalized data.
-        """
-        scaled_data = self.scaler.fit_transform(data.values.reshape(-1, 1))
-        return pd.Series(scaled_data.flatten(), index=data.index)
-    
-    def detrend_signal(self, data: pd.Series) -> pd.Series:
-        """
-        Detrend the signal using a differencing method.
-        :param data: Pandas Series with signal data.
-        :return: Pandas Series with detrended data.
-        """
-        return data.diff().bfill()
-    
-    def estimate_trend(self, data: pd.Series, window_size: int = None) -> pd.Series:
-        """
-        Estimate the trend component of the signal using a rolling window mean.
-        :param data: Pandas Series with signal data.
-        :param window_size: The size of the rolling window to use for trend estimation.
-        :return: Pandas Series representing the estimated trend.
-        """
-        if window_size is None:
-            # Default to a reasonable value if none provided
-            window_size = int(len(data) / 10)
-        trend = data.rolling(window=window_size, center=True, min_periods=1).mean()
-        return trend
 
     def remove_measurement_duplicates(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -69,54 +32,75 @@ class SignalPreprocessor:
 
         return data
 
-def segment_into_windows(data, window_size_points=1000):
-    """
-    Segments the data into windows of the given size.
-    
-    :param data: The complete signal data (Pandas Series).
-    :param window_size_points: The size of each window in terms of the number of data points.
-    :return: A list of windows, each is a Pandas Series.
-    """
-    windows = [data[i:i+window_size_points] for i in range(0, len(data), window_size_points)]
-    return windows
-    
-    def preprocess(self, data: pd.DataFrame) -> pd.DataFrame:
+    def segment_into_windows(self, data: pd.Series) -> [pd.Series]:
+        """
+        Segments the data into windows of the given size.
+        :param data: The complete signal data (Pandas Series).
+        :return: A list of windows, each is a Pandas Series.
+        """
+        return [data[i:i+self.window_size_points] for i in range(0, len(data), self.window_size_points)]
+
+    def reduce_noise(self, data: pd.Series) -> pd.Series:
+        """
+        Apply a rolling average to reduce noise in the signal.
+        :param data: Pandas Series with signal data.
+        :return: Pandas Series with reduced noise.
+        """
+        return data.rolling(window=self.window_size, center=True).mean()
+
+    def normalize_signal(self, data: pd.Series) -> pd.Series:
+        """
+        Normalize the signal data to a range between 0 and 1.
+        :param data: Pandas Series with signal data.
+        :return: Pandas Series with normalized data.
+        """
+        scaled_data = self.scaler.fit_transform(data.values.reshape(-1, 1))
+        return pd.Series(scaled_data.flatten(), index=data.index)
+
+    def detrend_signal(self, data: pd.Series) -> pd.Series:
+        """
+        Detrend the signal using a differencing method.
+        :param data: Pandas Series with signal data.
+        :return: Pandas Series with detrended data.
+        """
+        return data.diff().bfill()
+
+    def preprocess(self, data: pd.DataFrame) -> [pd.DataFrame]:
         """
         Apply all preprocessing steps to the data.
         :param data: Pandas DataFrame with signal data and possibly other metadata like 'measurement'.
-        :return: DataFrame with preprocessed data.
+        :return: List of DataFrames, each representing preprocessed data for a window.
         """
-       # Check if 'measurement' column exists, then remove duplicates
-        if 'measurement' in data.columns:
-            data = self.remove_measurement_duplicates(data)
 
-        # Continue with other preprocessing steps...
-        # Ensure 'data' is a series for the following operations
-        if isinstance(data, pd.DataFrame) and 'data' in data.columns:
-            signal_series = data['data']
-        else:
+        # Ensure 'data' column is present for further processing
+        if 'data' not in data.columns:
             raise ValueError("Data for preprocessing must include 'data' column")
 
-        # Select only the numeric data for noise reduction and other operations
-        if 'data' in data.columns:
-            signal_series = data['data']
-        else:
-            raise ValueError("Data for preprocessing must include 'data' column")
+        # Extract 'data' series for further processing
+        signal_series = data['data']
 
-        # Apply noise reduction, normalization, and detrending only on numeric data
-        signal_noised_reduced = self.reduce_noise(signal_series)
-        signal_normalized = self.normalize_signal(signal_noised_reduced)
-        signal_detrended = self.detrend_signal(signal_normalized)
+        # Step 2: Segment data into windows
+        windows = self.segment_into_windows(signal_series)
 
-        # Estimate the trend using the instance's window_size
-        trend = self.estimate_trend(signal_normalized, window_size=self.window_size)
+        # Apply further preprocessing to each window
+        preprocessed_windows = []
+        for window in windows:
+            # Step 3: Noise Reduction
+            noised_reduced = self.reduce_noise(window)
 
-        # Store results in the DataFrame
-        preprocessed_data = pd.DataFrame({
-            'data_noised_reduced': signal_noised_reduced,
-            'data_normalized': signal_normalized,
-            'data_detrended': signal_detrended,
-            'trend': trend
-        })
-        
-        return preprocessed_data
+            # Step 4: Normalization
+            normalized = self.normalize_signal(noised_reduced)
+
+            # Step 5: Detrending
+            detrended = self.detrend_signal(normalized)
+
+            # Combine preprocessed data into a DataFrame for this window
+            window_df = pd.DataFrame({
+                'data_noised_reduced': noised_reduced,
+                'data_normalized': normalized,
+                'data_detrended': detrended,
+            })
+
+            preprocessed_windows.append(window_df)
+
+        return preprocessed_windows

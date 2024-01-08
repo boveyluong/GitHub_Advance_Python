@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 import os
+
 # Add the path to the DataLoader script
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from modules.data_loader import DataLoader
@@ -18,23 +19,33 @@ def main():
     # Print column names to debug
     print("Column names in raw_data:", raw_data.columns)
 
-    # Ensure 'data' column exists or adjust to the correct column name
+    # Ensure the DataFrame contains 'data' column
     if 'data' not in raw_data.columns:
         print("The column 'data' was not found. Please check the raw DataFrame.")
         return  # Exit if the required column is not found
 
-    # Segment data into windows
-    windows = segment_into_windows(raw_data['data'])
-
     # Initialize the preprocessor and preprocess the data
     preprocessor = SignalPreprocessor(window_size=5)
 
-    # Assuming 'data' is the name of the column containing the signal
-    preprocessed_data = preprocessor.preprocess(raw_data)
+    # Preprocess the data (including duplicate removal, windowing, noise reduction, normalization, and detrending)
+    preprocessed_windows = preprocessor.preprocess(raw_data)
 
-    # Initialize the feature extractor and extract features
+    # Initialize the feature extractor
     feature_extractor = FeatureExtractor()
-    features_df = feature_extractor.extract_all_features(preprocessed_data['data_detrended'])
+
+    # Apply feature extraction to each preprocessed window and collect results
+    all_features = []
+    for window_data in preprocessed_windows:
+        # Ensure the 'data_detrended' column is present after preprocessing
+        if 'data_detrended' not in window_data.columns:
+            print("The column 'data_detrended' was not found in preprocessed data.")
+            continue  # Skip this window if the required column is not found
+
+        features = feature_extractor.extract_all_features(window_data['data_detrended'])
+        all_features.append(features)
+
+    # Combine all features into a single DataFrame
+    features_df = pd.concat(all_features, ignore_index=True)
 
     # Save the features to a new file for training and evaluation
     features_df.to_csv('features_for_model.csv', index=False)
