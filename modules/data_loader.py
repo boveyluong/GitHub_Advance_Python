@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import os
 import logging
-from typing import List, Dict, Union
+from typing import Any, Dict, Union
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -11,7 +11,6 @@ class DataLoader:
     """
     DataLoader class to load and union datasets for different experiments.
     """
-
     def __init__(self, config_path: str):
         """
         Initialize the DataLoader with a configuration file.
@@ -52,7 +51,7 @@ class DataLoader:
                 file_path = file_info['path']
                 file_type = file_info['type']
                 try:
-                    data = self.load_file(file_path, file_type)
+                    data = self.load_file(file_path, file_type, experiment)
                     file_name = os.path.basename(file_path).split('.')[0]
                     data['experiment'] = experiment  # Use experiment name from config
                     data['measurement'] = file_name
@@ -67,14 +66,15 @@ class DataLoader:
 
         return pd.concat(experiment_data, ignore_index=True)
 
-    def load_file(self, file_path: str, file_type: str) -> pd.DataFrame:
+    def load_file(self, file_path: str, file_type: str, experiment_name: str) -> pd.DataFrame:
         """
         Load data from a file based on its type.
+        Replace commas with dots in numerical values for consistency.
         """
         if file_type == 'csv':
-            data = pd.read_csv(file_path)
+            data = pd.read_csv(file_path, converters={'RawData': lambda x: x.replace(',', '.')})
         elif file_type == 'tsv':
-            data = pd.read_csv(file_path, sep='\t')
+            data = pd.read_csv(file_path, sep='\t', converters={'RawData': lambda x: x.replace(',', '.')})
         elif file_type == 'pkl':
             data = pd.read_pickle(file_path)
         else:
@@ -83,17 +83,28 @@ class DataLoader:
         if data.empty:
             logging.warning(f"No data found in file: {file_path}")
 
-        data.columns = ['data'] + data.columns.tolist()[1:]
+        # For experiment 4, ensure the 'RawData' column is loaded as 'data'
+        if 'RawData' in data.columns and experiment_name == 'experiment4':
+            data.rename(columns={'RawData': 'data'}, inplace=True)
+        elif 'data' not in data.columns:
+            # Assume first column is the data column
+            first_column = data.columns[0]
+            data.rename(columns={first_column: 'data'}, inplace=True)
+
+        # Ensure all numerical values use a dot as the decimal separator
+        data['data'] = data['data'].astype(str).str.replace(',', '.').astype(float)
         return data
 
 # Example usage
-try:
-    data_loader = DataLoader('../config.json')
+"""try:
+    data_loader = DataLoader('config.json')
 
     # Load a specific experiment
-    experiment_data = data_loader.load_experiment_data('experiment4')
+    experiment_data = data_loader.load_experiment_data('experiment1')
     print(experiment_data.head())
     print(experiment_data.count())
 
+
 except Exception as e:
     logging.error(f"An error occurred: {e}")
+"""

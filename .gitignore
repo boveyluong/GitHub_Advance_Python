@@ -55,9 +55,11 @@ cover/
 *.mo
 *.pot
 
-.data
+# Exclude data and artifacts
+.data/
+artifacts/
 
-scripts/plots
+*.png
 
 # Django stuff:
 *.log
