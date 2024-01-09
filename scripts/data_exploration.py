@@ -12,7 +12,6 @@ from modules.data_loader import DataLoader
 
 def explore_experiment(experiment_name, data_loader):
     experiment_data = data_loader.load_experiment_data(experiment_name)
-
     # Create directories for artifacts if they don't exist
     artifacts_dir = os.path.join('artifacts', experiment_name)
     plots_dir = os.path.join(artifacts_dir, 'plots')
@@ -30,9 +29,9 @@ def explore_experiment(experiment_name, data_loader):
 
     # Time Series Plot
     plt.figure(figsize=(12, 6))
-    plt.plot(experiment_data.index, experiment_data['data'])
+    plt.plot(experiment_data['time'], experiment_data['data'])  # Using 'time' column for x-axis
     plt.title(f'Time Series - {experiment_name}')
-    plt.xlabel('Time')
+    plt.xlabel('Time (seconds)')
     plt.ylabel('Signal')
     plt.savefig(os.path.join(plots_dir, f'{experiment_name}_timeseries.png'))
     plt.close()
