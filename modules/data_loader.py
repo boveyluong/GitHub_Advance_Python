@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import json
 import os
 import logging
@@ -53,8 +54,12 @@ class DataLoader:
                 try:
                     data = self.load_file(file_path, file_type, experiment)
                     file_name = os.path.basename(file_path).split('.')[0]
-                    data['experiment'] = experiment  # Use experiment name from config
+                    
+                    # Add 'experiment' and 'measurement' columns
+                    data['experiment'] = experiment
                     data['measurement'] = file_name
+
+                    # Keep 'time', 'experiment', and 'measurement' as regular columns
                     experiment_data.append(data)
                 except Exception as e:
                     logging.error(f"Error loading file {file_path}: {e}")
@@ -64,6 +69,7 @@ class DataLoader:
             logging.warning(f"No data loaded for experiment(s).")
             return pd.DataFrame()
 
+        # Concatenate data as is without changing index
         return pd.concat(experiment_data, ignore_index=True)
 
     def load_file(self, file_path: str, file_type: str, experiment_name: str) -> pd.DataFrame:
@@ -93,18 +99,25 @@ class DataLoader:
 
         # Ensure all numerical values use a dot as the decimal separator
         data['data'] = data['data'].astype(str).str.replace(',', '.').astype(float)
+
+        # Generate time index in seconds
+        actual_number_of_samples = len(data)
+        sampling_rate = 10e3  # Update this if different for Experiment 4
+        time_in_seconds = np.arange(0, actual_number_of_samples) / sampling_rate
+        data['time'] = time_in_seconds  # Add time column but don't set as index here
+
+
         return data
 
 # Example usage
-"""try:
+try:
     data_loader = DataLoader('config.json')
 
     # Load a specific experiment
-    experiment_data = data_loader.load_experiment_data('experiment1')
+    experiment_data = data_loader.load_experiment_data('experiment4')
     print(experiment_data.head())
     print(experiment_data.count())
 
 
 except Exception as e:
     logging.error(f"An error occurred: {e}")
-"""
