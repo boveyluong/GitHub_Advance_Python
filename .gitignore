@@ -58,6 +58,7 @@ cover/
 # Exclude data and artifacts
 .data/
 artifacts/
+*.csv
 
 *.png
 
