@@ -64,13 +64,19 @@ class DataLoader:
                 except Exception as e:
                     logging.error(f"Error loading file {file_path}: {e}")
                     continue
-
+        
         if not experiment_data:
             logging.warning(f"No data loaded for experiment(s).")
             return pd.DataFrame()
-
         # Concatenate data as is without changing index
-        return pd.concat(experiment_data, ignore_index=True)
+        data = pd.concat(experiment_data, ignore_index=True)
+        # Generate time index in seconds
+        actual_number_of_samples = len(data)
+        sampling_rate = 10e3  # Update this if different for Experiment 4
+        time_in_seconds = np.arange(1, actual_number_of_samples + 1) / sampling_rate
+        data['time'] = time_in_seconds  # Add time column but don't set as index here
+        return data
+
 
     def load_file(self, file_path: str, file_type: str, experiment_name: str) -> pd.DataFrame:
         """
@@ -100,13 +106,6 @@ class DataLoader:
         # Ensure all numerical values use a dot as the decimal separator
         data['data'] = data['data'].astype(str).str.replace(',', '.').astype(float)
 
-        # Generate time index in seconds
-        actual_number_of_samples = len(data)
-        sampling_rate = 10e3  # Update this if different for Experiment 4
-        time_in_seconds = np.arange(0, actual_number_of_samples) / sampling_rate
-        data['time'] = time_in_seconds  # Add time column but don't set as index here
-
-
         return data
 
 # Example usage
@@ -114,9 +113,12 @@ try:
     data_loader = DataLoader('config.json')
 
     # Load a specific experiment
-    experiment_data = data_loader.load_experiment_data('experiment4')
+    experiment_data = data_loader.load_experiment_data('experiment1')
     print(experiment_data.head())
     print(experiment_data.count())
+    print(experiment_data.max())
+    # save the data to a csv file
+    experiment_data.to_csv('experiment1.csv')
 
 
 except Exception as e:

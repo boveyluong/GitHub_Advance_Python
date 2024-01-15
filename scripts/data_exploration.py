@@ -56,7 +56,6 @@ def explore_experiment(experiment_name, data_loader):
     plt.savefig(os.path.join(plots_dir, f'{experiment_name}_distribution.png'))
     plt.close()
 
-
     # Count rows per measurement
     measurement_counts = experiment_data.groupby('measurement').count()
 
@@ -69,7 +68,6 @@ def explore_experiment(experiment_name, data_loader):
     measurement_duplicates = experiment_data.groupby('measurement').apply(lambda x: x.duplicated().sum())
     print(f"Duplicates per measurement in {experiment_name}:")
     print(measurement_duplicates)
-
 
     # Boxplot
     plt.figure(figsize=(10, 5))
@@ -88,6 +86,21 @@ def explore_experiment(experiment_name, data_loader):
         plt.savefig(os.path.join(plots_dir, f'{experiment_name}_correlation_matrix.png'))
         plt.close()
 
+    # Create subfolder for measurement time series plots
+    measurement_plots_dir = os.path.join(plots_dir, 'measurement_ts')
+    os.makedirs(measurement_plots_dir, exist_ok=True)
+
+    # Create time series plot for each measurement
+    for measurement in experiment_data['measurement'].unique():
+        measurement_data = experiment_data[experiment_data['measurement'] == measurement]
+        plt.figure(figsize=(12, 6))
+        plt.plot(measurement_data['time'], measurement_data['data'])
+        plt.title(f'Time Series - {experiment_name} - Measurement {measurement}')
+        plt.xlabel('Time (seconds)')
+        plt.ylabel('Signal')
+        plt.savefig(os.path.join(measurement_plots_dir, f'{experiment_name}_measurement_{measurement}_timeseries.png'))
+        plt.close()
+
 
 def main():
     # Set plot style
@@ -98,7 +111,7 @@ def main():
 
     # List of experiments to explore
     experiments = data_loader.config['experiments'].keys()
-    
+
     for experiment_name in experiments:
         explore_experiment(experiment_name, data_loader)
 

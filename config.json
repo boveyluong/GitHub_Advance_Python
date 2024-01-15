@@ -13,7 +13,6 @@
         {"path": ".data\\Experiment_2\\measurement_3.csv", "type": "csv"},
         {"path": ".data\\Experiment_2\\measurement_4.csv", "type": "csv"},
         {"path": ".data\\Experiment_2\\measurement_5.csv", "type": "csv"},
-        {"path": ".data\\Experiment_2\\measurement_5.csv", "type": "csv"},
         {"path": ".data\\Experiment_2\\measurement_6.csv", "type": "csv"}
       ],
       "experiment3": [
@@ -26,7 +25,6 @@
         {"path": ".data\\Experiment_4\\raw_data\\measurement_2.pkl", "type": "pkl"},
         {"path": ".data\\Experiment_4\\raw_data\\measurement_3.pkl", "type": "pkl"},
         {"path": ".data\\Experiment_4\\raw_data\\measurement_4.pkl", "type": "pkl"},
-        {"path": ".data\\Experiment_4\\raw_data\\measurement_5.pkl", "type": "pkl"},
         {"path": ".data\\Experiment_4\\raw_data\\measurement_5.pkl", "type": "pkl"}
       ]
     }
